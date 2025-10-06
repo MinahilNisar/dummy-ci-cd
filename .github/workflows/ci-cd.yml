@@ -24,6 +24,28 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # Step 4: Run tests (we don’t have tests, but let’s check build)
+      # Step 4: Run build/test
       - name: Run build
         run: npm start &
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            cd /home/ubuntu
+            if [ ! -d "dummy-app" ]; then
+              git clone https://github.com/MinahilNisar/dummy-app-ci-cd.git dummy-app
+            else
+              cd dummy-app && git pull origin main
+            fi
+            cd dummy-app
+            npm install
+            nohup npm start > app.log 2>&1 &
